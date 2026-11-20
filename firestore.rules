@@ -1,0 +1,377 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Primitive Helpers ---
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && isVerified() && request.auth.uid == userId;
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() &&
+        isVerified() &&
+        request.auth.token.email == 'abbas.0251mba260@dgu.ac.in';
+    }
+
+    function isAdmin() {
+      return isBootstrappedAdmin() || (
+        isSignedIn() &&
+        isVerified() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // --- Entity Validation Blueprints ---
+    function isValidUserProfile(data) {
+      return data.keys().hasAll([
+          'uid', 'displayName', 'email', 'hostelBlock', 'roomNumber',
+          'phone', 'program', 'monthlyBudget', 'role', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid', 'displayName', 'email', 'hostelBlock', 'roomNumber',
+          'phone', 'program', 'monthlyBudget', 'role', 'createdAt', 'updatedAt'
+        ]) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+        data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 80 &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+        data.hostelBlock is string && data.hostelBlock.size() <= 80 &&
+        data.roomNumber is string && data.roomNumber.size() <= 24 &&
+        data.phone is string && data.phone.size() <= 20 &&
+        data.program is string && data.program.size() <= 60 &&
+        data.monthlyBudget is number && data.monthlyBudget >= 0 && data.monthlyBudget <= 500000 &&
+        data.role in ['student', 'admin'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidAdminRecord(data) {
+      return data.keys().hasAll(['uid', 'email', 'grantedAt']) &&
+        data.keys().hasOnly(['uid', 'email', 'grantedAt']) &&
+        data.uid is string && data.uid.size() >= 1 && data.uid.size() <= 128 &&
+        data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.email is string && data.email.size() >= 3 && data.email.size() <= 120 &&
+        data.grantedAt is timestamp;
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll([
+          'userId', 'studentName', 'hostelBlock', 'roomNumber', 'pickupDate',
+          'pickupSlot', 'serviceType', 'estimatedKg', 'priceInr', 'variableCostInr',
+          'contributionInr', 'paymentMethod', 'upiReference', 'paymentStatus',
+          'status', 'batchCode', 'assignedPartner', 'linkedDeadlineTitle',
+          'notes', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'userId', 'studentName', 'hostelBlock', 'roomNumber', 'pickupDate',
+          'pickupSlot', 'serviceType', 'estimatedKg', 'priceInr', 'variableCostInr',
+          'contributionInr', 'paymentMethod', 'upiReference', 'paymentStatus',
+          'status', 'batchCode', 'assignedPartner', 'linkedDeadlineTitle',
+          'notes', 'createdAt', 'updatedAt'
+        ]) &&
+        data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 80 &&
+        data.hostelBlock is string && data.hostelBlock.size() >= 1 && data.hostelBlock.size() <= 80 &&
+        data.roomNumber is string && data.roomNumber.size() >= 1 && data.roomNumber.size() <= 24 &&
+        data.pickupDate is string && data.pickupDate.size() == 10 &&
+        data.pickupSlot in ['Morning (8-10 AM)', 'Afternoon (1-3 PM)', 'Evening (6-8 PM)'] &&
+        data.serviceType in ['Regular Wash & Steam Iron', 'Hostel Linen & Towels', 'Formal & Presentation Wear'] &&
+        data.estimatedKg is number && data.estimatedKg >= 1 && data.estimatedKg <= 15 &&
+        data.priceInr in [150, 200, 250] &&
+        data.variableCostInr == 90 &&
+        data.contributionInr == (data.priceInr - data.variableCostInr) &&
+        data.paymentMethod in ['UPI Prepaid', 'Pay on Pickup'] &&
+        data.upiReference is string && data.upiReference.size() <= 64 &&
+        data.paymentStatus in ['Pending', 'Verified'] &&
+        data.status in ['Scheduled', 'Picked Up', 'Washing & Ironing', 'Out for Delivery', 'Delivered', 'Cancelled'] &&
+        data.batchCode is string && data.batchCode.size() >= 3 && data.batchCode.size() <= 32 &&
+        data.assignedPartner is string && data.assignedPartner.size() >= 2 && data.assignedPartner.size() <= 80 &&
+        data.linkedDeadlineTitle is string && data.linkedDeadlineTitle.size() <= 120 &&
+        data.notes is string && data.notes.size() <= 300 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidReview(data) {
+      return data.keys().hasAll([
+          'userId', 'authorName', 'authorProgram', 'hostelBlock', 'rating',
+          'punctualityRating', 'qualityRating', 'valueRating', 'comment',
+          'wouldRecommend', 'verifiedAccount', 'verifiedOrder', 'orderId',
+          'helpfulCount', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'userId', 'authorName', 'authorProgram', 'hostelBlock', 'rating',
+          'punctualityRating', 'qualityRating', 'valueRating', 'comment',
+          'wouldRecommend', 'verifiedAccount', 'verifiedOrder', 'orderId',
+          'helpfulCount', 'createdAt', 'updatedAt'
+        ]) &&
+        data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.authorName is string && data.authorName.size() >= 1 && data.authorName.size() <= 80 &&
+        data.authorProgram is string && data.authorProgram.size() >= 1 && data.authorProgram.size() <= 60 &&
+        data.hostelBlock is string && data.hostelBlock.size() >= 1 && data.hostelBlock.size() <= 80 &&
+        data.rating is number && data.rating >= 1 && data.rating <= 5 &&
+        data.punctualityRating is number && data.punctualityRating >= 1 && data.punctualityRating <= 5 &&
+        data.qualityRating is number && data.qualityRating >= 1 && data.qualityRating <= 5 &&
+        data.valueRating is number && data.valueRating >= 1 && data.valueRating <= 5 &&
+        data.comment is string && data.comment.size() >= 10 && data.comment.size() <= 500 &&
+        data.wouldRecommend is bool &&
+        data.verifiedAccount is bool &&
+        data.verifiedOrder is bool &&
+        data.orderId is string && data.orderId.size() <= 128 &&
+        data.helpfulCount is number && data.helpfulCount >= 0 && data.helpfulCount <= 100000 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidDeadline(data) {
+      return data.keys().hasAll([
+          'userId', 'title', 'course', 'type', 'dueDate', 'workloadHours',
+          'laundryLinked', 'linkedOrderId', 'completed', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'userId', 'title', 'course', 'type', 'dueDate', 'workloadHours',
+          'laundryLinked', 'linkedOrderId', 'completed', 'createdAt', 'updatedAt'
+        ]) &&
+        data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 120 &&
+        data.course is string && data.course.size() >= 1 && data.course.size() <= 60 &&
+        data.type in ['Assignment', 'Presentation', 'Group Project', 'Exam'] &&
+        data.dueDate is string && data.dueDate.size() == 10 &&
+        data.workloadHours is number && data.workloadHours >= 1 && data.workloadHours <= 40 &&
+        data.laundryLinked is bool &&
+        data.linkedOrderId is string && data.linkedOrderId.size() <= 128 &&
+        data.completed is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidExpense(data) {
+      return data.keys().hasAll([
+          'userId', 'title', 'category', 'amountInr', 'savedInr',
+          'date', 'linkedOrderId', 'createdAt', 'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'userId', 'title', 'category', 'amountInr', 'savedInr',
+          'date', 'linkedOrderId', 'createdAt', 'updatedAt'
+        ]) &&
+        data.userId is string && data.userId.size() >= 1 && data.userId.size() <= 128 &&
+        data.userId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+        data.category in ['Laundry', 'Food & Mess', 'Transport', 'Hostel & PG', 'Academic', 'Subscriptions', 'Other'] &&
+        data.amountInr is number && data.amountInr > 0 && data.amountInr <= 100000 &&
+        data.savedInr is number && data.savedInr >= 0 && data.savedInr <= 10000 &&
+        data.date is string && data.date.size() == 10 &&
+        data.linkedOrderId is string && data.linkedOrderId.size() <= 128 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // --- Collection Match Blocks ---
+    match /users/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isBootstrappedAdmin();
+      allow create: if isValidId(userId) &&
+        isOwner(userId) &&
+        isValidUserProfile(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().role == 'student' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(userId) &&
+        isValidUserProfile(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() || (
+            isOwner(userId) &&
+            incoming().role == existing().role &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'displayName', 'hostelBlock', 'roomNumber', 'phone',
+              'program', 'monthlyBudget', 'updatedAt'
+            ])
+          )
+        );
+      allow delete: if isValidId(userId) && isAdmin();
+    }
+
+    match /admins/{userId} {
+      allow get: if isValidId(userId) && (isOwner(userId) || isAdmin());
+      allow list: if isBootstrappedAdmin();
+      allow create: if isValidId(userId) &&
+        isBootstrappedAdmin() &&
+        isValidAdminRecord(incoming()) &&
+        incoming().uid == userId &&
+        incoming().grantedAt == request.time;
+      allow update: if false;
+      allow delete: if isValidId(userId) && isBootstrappedAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow get: if isValidId(orderId) && (
+        (isVerified() && resource.data.userId == request.auth.uid) ||
+        isAdmin()
+      );
+      allow list: if (isVerified() && resource.data.userId == request.auth.uid) ||
+        isBootstrappedAdmin();
+      allow create: if isValidId(orderId) &&
+        isVerified() &&
+        isValidOrder(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().status == 'Scheduled' &&
+        incoming().paymentStatus == 'Pending' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(orderId) &&
+        isVerified() &&
+        isValidOrder(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() || (
+            existing().userId == request.auth.uid &&
+            existing().status == 'Scheduled' &&
+            incoming().status == 'Cancelled' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])
+          ) || (
+            existing().userId == request.auth.uid &&
+            existing().status == 'Scheduled' &&
+            incoming().status == 'Scheduled' &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['upiReference', 'notes', 'updatedAt'])
+          )
+        );
+      allow delete: if isValidId(orderId) && isAdmin();
+    }
+
+    match /reviews/{reviewId} {
+      allow get: if isValidId(reviewId);
+      allow list: if true;
+      allow create: if isValidId(reviewId) &&
+        isVerified() &&
+        isValidReview(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().verifiedAccount == true &&
+        incoming().helpfulCount == 0 &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time && (
+          (incoming().orderId == '' && incoming().verifiedOrder == false) || (
+            incoming().orderId != '' &&
+            isValidId(incoming().orderId) &&
+            incoming().verifiedOrder == true &&
+            exists(/databases/$(database)/documents/orders/$(incoming().orderId)) &&
+            get(/databases/$(database)/documents/orders/$(incoming().orderId)).data.userId == request.auth.uid &&
+            get(/databases/$(database)/documents/orders/$(incoming().orderId)).data.status == 'Delivered'
+          )
+        );
+      allow update: if isValidId(reviewId) &&
+        isVerified() &&
+        isValidReview(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().verifiedAccount == existing().verifiedAccount &&
+        incoming().verifiedOrder == existing().verifiedOrder &&
+        incoming().orderId == existing().orderId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() || (
+            existing().userId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'rating', 'punctualityRating', 'qualityRating', 'valueRating',
+              'comment', 'wouldRecommend', 'updatedAt'
+            ])
+          ) || (
+            incoming().helpfulCount == existing().helpfulCount + 1 &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['helpfulCount', 'updatedAt'])
+          )
+        );
+      allow delete: if isValidId(reviewId) && (
+        (isVerified() && resource.data.userId == request.auth.uid) ||
+        isAdmin()
+      );
+    }
+
+    match /deadlines/{deadlineId} {
+      allow get: if isValidId(deadlineId) && (
+        (isVerified() && resource.data.userId == request.auth.uid) ||
+        isAdmin()
+      );
+      allow list: if (isVerified() && resource.data.userId == request.auth.uid) ||
+        isBootstrappedAdmin();
+      allow create: if isValidId(deadlineId) &&
+        isVerified() &&
+        isValidDeadline(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(deadlineId) &&
+        isVerified() &&
+        isValidDeadline(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        existing().userId == request.auth.uid &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'course', 'type', 'dueDate', 'workloadHours',
+          'laundryLinked', 'linkedOrderId', 'completed', 'updatedAt'
+        ]);
+      allow delete: if isValidId(deadlineId) && (
+        (isVerified() && resource.data.userId == request.auth.uid) ||
+        isAdmin()
+      );
+    }
+
+    match /expenses/{expenseId} {
+      allow get: if isValidId(expenseId) && (
+        (isVerified() && resource.data.userId == request.auth.uid) ||
+        isAdmin()
+      );
+      allow list: if (isVerified() && resource.data.userId == request.auth.uid) ||
+        isBootstrappedAdmin();
+      allow create: if isValidId(expenseId) &&
+        isVerified() &&
+        isValidExpense(incoming()) &&
+        incoming().userId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+      allow update: if isValidId(expenseId) &&
+        isVerified() &&
+        isValidExpense(incoming()) &&
+        incoming().userId == existing().userId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time &&
+        existing().userId == request.auth.uid &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'title', 'category', 'amountInr', 'savedInr', 'date', 'updatedAt'
+        ]);
+      allow delete: if isValidId(expenseId) && (
+        (isVerified() && resource.data.userId == request.auth.uid) ||
+        isAdmin()
+      );
+    }
+  }
+}

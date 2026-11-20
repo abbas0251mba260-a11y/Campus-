@@ -1,0 +1,445 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Registered student or operator profile with hostel location and monthly budget target.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "minLength": 3,
+          "maxLength": 120
+        },
+        "hostelBlock": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 80
+        },
+        "roomNumber": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 24
+        },
+        "phone": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 20
+        },
+        "program": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 60
+        },
+        "monthlyBudget": {
+          "type": "number"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["student", "admin"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "displayName", "email", "hostelBlock", "roomNumber", "phone", "program", "monthlyBudget", "role", "createdAt", "updatedAt"]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Authorized Venture Operations Admin record.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "email": {
+          "type": "string",
+          "maxLength": 120
+        },
+        "grantedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": ["uid", "email", "grantedAt"]
+    },
+    "LaundryOrder": {
+      "title": "LaundryOrder",
+      "description": "Scheduled student laundry pickup, wash, iron, and delivery order with automated unit economics.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "studentName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "hostelBlock": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "roomNumber": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 24
+        },
+        "pickupDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "pickupSlot": {
+          "type": "string",
+          "enum": ["Morning (8-10 AM)", "Afternoon (1-3 PM)", "Evening (6-8 PM)"]
+        },
+        "serviceType": {
+          "type": "string",
+          "enum": ["Regular Wash & Steam Iron", "Hostel Linen & Towels", "Formal & Presentation Wear"]
+        },
+        "estimatedKg": {
+          "type": "number"
+        },
+        "priceInr": {
+          "type": "number"
+        },
+        "variableCostInr": {
+          "type": "number"
+        },
+        "contributionInr": {
+          "type": "number"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": ["UPI Prepaid", "Pay on Pickup"]
+        },
+        "upiReference": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 64
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["Pending", "Verified"]
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Scheduled", "Picked Up", "Washing & Ironing", "Out for Delivery", "Delivered", "Cancelled"]
+        },
+        "batchCode": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 32
+        },
+        "assignedPartner": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "linkedDeadlineTitle": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 120
+        },
+        "notes": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 300
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "studentName",
+        "hostelBlock",
+        "roomNumber",
+        "pickupDate",
+        "pickupSlot",
+        "serviceType",
+        "estimatedKg",
+        "priceInr",
+        "variableCostInr",
+        "contributionInr",
+        "paymentMethod",
+        "upiReference",
+        "paymentStatus",
+        "status",
+        "batchCode",
+        "assignedPartner",
+        "linkedDeadlineTitle",
+        "notes",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "VerifiedReview": {
+      "title": "VerifiedReview",
+      "description": "Public verified-user service rating and testimonial without PII.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "authorName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "authorProgram": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "hostelBlock": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 80
+        },
+        "rating": {
+          "type": "number"
+        },
+        "punctualityRating": {
+          "type": "number"
+        },
+        "qualityRating": {
+          "type": "number"
+        },
+        "valueRating": {
+          "type": "number"
+        },
+        "comment": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 500
+        },
+        "wouldRecommend": {
+          "type": "boolean"
+        },
+        "verifiedAccount": {
+          "type": "boolean"
+        },
+        "verifiedOrder": {
+          "type": "boolean"
+        },
+        "orderId": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 128
+        },
+        "helpfulCount": {
+          "type": "number"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "authorName",
+        "authorProgram",
+        "hostelBlock",
+        "rating",
+        "punctualityRating",
+        "qualityRating",
+        "valueRating",
+        "comment",
+        "wouldRecommend",
+        "verifiedAccount",
+        "verifiedOrder",
+        "orderId",
+        "helpfulCount",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AcademicDeadline": {
+      "title": "AcademicDeadline",
+      "description": "MBA/university academic deadline used to automate pre-crunch laundry scheduling.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "course": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 60
+        },
+        "type": {
+          "type": "string",
+          "enum": ["Assignment", "Presentation", "Group Project", "Exam"]
+        },
+        "dueDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "workloadHours": {
+          "type": "number"
+        },
+        "laundryLinked": {
+          "type": "boolean"
+        },
+        "linkedOrderId": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 128
+        },
+        "completed": {
+          "type": "boolean"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "course",
+        "type",
+        "dueDate",
+        "workloadHours",
+        "laundryLinked",
+        "linkedOrderId",
+        "completed",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "StudentExpense": {
+      "title": "StudentExpense",
+      "description": "Student monthly expense ledger entry including auto-logged laundry orders and savings.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "category": {
+          "type": "string",
+          "enum": ["Laundry", "Food & Mess", "Transport", "Hostel & PG", "Academic", "Subscriptions", "Other"]
+        },
+        "amountInr": {
+          "type": "number"
+        },
+        "savedInr": {
+          "type": "number"
+        },
+        "date": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10
+        },
+        "linkedOrderId": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 128
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "userId",
+        "title",
+        "category",
+        "amountInr",
+        "savedInr",
+        "date",
+        "linkedOrderId",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/UserProfile" },
+      "description": "Private user profile and student budget configuration, accessible only by owner or admin."
+    },
+    "/admins/{userId}": {
+      "schema": { "$ref": "#/entities/AdminRecord" },
+      "description": "Authorized CampusFin venture operations administrators."
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/LaundryOrder" },
+      "description": "Scheduled laundry pickup and delivery orders owned by students and managed by admins."
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/VerifiedReview" },
+      "description": "Publicly readable verified-user ratings and reviews without PII."
+    },
+    "/deadlines/{deadlineId}": {
+      "schema": { "$ref": "#/entities/AcademicDeadline" },
+      "description": "Owner-scoped academic deadlines used for automated pre-crunch pickup scheduling."
+    },
+    "/expenses/{expenseId}": {
+      "schema": { "$ref": "#/entities/StudentExpense" },
+      "description": "Owner-scoped student expense and savings ledger entries."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "CampusFin",
+  "description": "Student-focused scheduled hostel laundry pickup, expense budgeting, deadline-aware scheduling, and verified review platform for DGU & Dehradun students.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
